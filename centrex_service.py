@@ -17,8 +17,8 @@ def prepare_tender_data_asset(tender_data):
     tender_data['data']['assetCustodian']['contactPoint']['telephone'] = u'+38(101)010-10-10'
     tender_data['data']['assetCustodian']['contactPoint']['email'] = u'testprozorroyowner@gmail.com'
     for item in range(len(tender_data['data']['items'])):
-        if tender_data['data']['items'][item]['address']['region'] == u'місто Київ':
-            tender_data['data']['items'][item]['address']['region'] = u'Київ'
+        if tender_data['data']['items'][item]['address']['region'] == u'Київ':
+            tender_data['data']['items'][item]['address']['region'] = u'місто Київ'
     return tender_data
 
 
@@ -33,7 +33,7 @@ def convert_date_from_item(date):
     return '{}T00:00:00{}'.format(date, tz)
 
 
-def convert_date(date):
+def convert_date_view(date):
     if '.' in date:
         date = datetime.strptime(date, '%d.%m.%Y %H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S.%f')
     else:
@@ -41,24 +41,9 @@ def convert_date(date):
     return '{}{}'.format(date, tz)
 
 
-def convert_date_for_item(date):
-    date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S{}'.format(tz)).strftime('%d/%m/%Y %H:%M')
-    return '{}'.format(date)
-
-
-def convert_date_for_auction(date):
-    date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f{}'.format(tz)).strftime('%d/%m/%Y %H:%M:%S')
-    return '{}'.format(date)
-
-
 def convert_date_from_decision(date):
     date = datetime.strptime(date, '%d/%m/%Y'.format(tz)).strftime('%Y-%m-%dT%H:%M:%S.%f')
     return '{}{}'.format(date, tz)
-
-
-def convert_date_for_decision(date):
-    date = datetime.strptime(date, '%Y-%m-%d'.format(tz)).strftime('%d/%m/%Y')
-    return '{}'.format(date)
 
 
 def convert_duration(duration):
@@ -79,8 +64,19 @@ def adapted_dictionary(value):
         u'Аукціон': 'active.auction',
         u'Очiкування пропозицiй': 'active.tendering',
         u'Торги не відбулися': 'unsuccessful',
-        u'Продаж завершений': 'complete',
+        u'Аукціон не відбувся': 'unsuccessful',
+        u'Аукціон відбувся (або 1 учасник)': 'complete',
         u'Торги скасовано': 'cancelled',
+        u'Торги відмінено': 'cancelled',
+        u'Квалiфiкацiя переможця': 'active.qualification',
+        u'Прийняття заяв на участь': 'active.qualification',
+        u'Очікується опублікування протоколу': 'active.qualification',
+        u'Очікується рішення': 'pending.waiting',
+        u'Очікується протокол': 'pending.waiting',
+        u'Рішення скасоване': 'unsuccessful',
+        u'Відмова від очікування': 'cancelled',
+        u'Очікується рішення про викуп': 'pending.admission',
+        u'Переможець': 'active',
         u'об’єкт реєструється': u'registering',
         u'об’єкт зареєстровано': u'complete',
         u'Об’єкт зареєстровано': u'complete',
@@ -89,10 +85,22 @@ def adapted_dictionary(value):
         u'Публікація інформаційного повідомлення': u'composing',
         u'Перевірка доступності об’єкту': u'verification',
         u'lot.status.pending.deleted': u'pending.deleted',
-        u'Лот видалено': u'deleted',
-        u'Інформація': u'informationDetails',
-        u'open_sellout.english_2': u'sellout.english',
-        u'Заплановано': u'scheduled'
+        u'Об’єкт виключено': u'deleted',
+        u'iншi': u'informationDetails',
+        u'Оголошення аукціону з продажу об’єктів малої приватизації': u'sellout.english',
+        u'Заплановано': u'scheduled',
+        u'Виконано': u'met',
+        u'Не виконано': u'notMet',
+        u'Завершений': u'terminated',
+        u'Не успішний': u'unsuccessful',
+        u'Очікується оплата.': u'active.confirmation',
+        u'Очікується оплата': u'active.payment',
+        u'Договір оплачено. Очікується наказ': u'active.approval',
+        u'Період виконання умов продажу (період оскарження)': u'active',
+        u"Приватизація об’єкта завершена.": u'pending.terminated',
+        u"Приватизація об’єкта неуспішна.": u'pending.unsuccessful',
+        u"Приватизація об’єкта завершена": u'terminated',
+        u"Приватизація об’єкта неуспішна": u'unsuccessful'
     }.get(value, value)
 
 
@@ -114,7 +122,7 @@ def adapt_data(field, value):
     elif 'contractPeriod' in field:
         value = convert_date_from_item(value)
     elif 'tenderPeriod' in field or 'auctionPeriod' in field or 'rectificationPeriod' in field and 'invalidationDate' not in field:
-        value = convert_date(value)
+        value = convert_date_view(value)
     else:
         value = adapted_dictionary(value)
     return value
@@ -122,13 +130,13 @@ def adapt_data(field, value):
 
 def adapt_asset_data(field, value):
     if 'date' in field:
-        value = convert_date(value)
+        value = convert_date_view(value)
     elif 'decisionDate' in field:
         value = convert_date_from_decision(value.split(' ')[0])
     elif 'documentType' in field:
         value = adapted_dictionary(value.split(' ')[0])
     elif 'rectificationPeriod.endDate' in field:
-        value = convert_date(value)
+        value = convert_date_view(value)
     elif 'documentType' in field:
         value = value
     else:
@@ -146,7 +154,7 @@ def adapt_lot_data(field, value):
         else:
             value = 'P{}D'.format(value)
     elif 'auctionPeriod.startDate' in field:
-        value = convert_date(value)
+        value = convert_date_view(value)
     elif 'classification.id' in field:
         value = value.split(' - ')[0]
     elif 'unit.name' in field:
@@ -166,6 +174,12 @@ def adapt_edrpou(value):
     value = str(value)
     if len(value) == 7:
         value += '0'
+    elif len(value) == 6:
+        value += '09'
+    elif len(value) == 9:
+        value = value[0:8]
+    elif len(value) == 10:
+        value = value[0:8]
     return value
 
 
